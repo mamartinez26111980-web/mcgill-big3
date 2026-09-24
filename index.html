@@ -392,7 +392,7 @@
     await hablar(ann);
     if (!corriendo) return;
     await dormir(250);
-    await cuentaAtras(dur, { modo: dur >= 30 ? "inteligente" : "todas", clase: "" });
+    await cuentaAtras(dur, { modo: "todas", clase: "" });
     if (!corriendo) return;
     pitidoCambio();
   }
@@ -457,7 +457,7 @@
     pitido(880, 0.15);
     await hablar("Brazo izquierdo apoyado.");
     if (!corriendo) return;
-    await cuentaAtras(40, { modo: "inteligente", clase: "" });
+    await cuentaAtras(40, { modo: "todas", clase: "" });
     if (!corriendo) return;
     pitidoCambio();
 
@@ -470,7 +470,7 @@
     pitido(880, 0.15);
     await hablar("Brazo derecho apoyado. El último.");
     if (!corriendo) return;
-    await cuentaAtras(40, { modo: "inteligente", clase: "" });
+    await cuentaAtras(40, { modo: "todas", clase: "" });
     if (!corriendo) return;
 
     pitidoFin();
