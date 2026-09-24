@@ -88,7 +88,8 @@
   .barra > div { height: 100%; width: 0%; background: linear-gradient(90deg, #22c55e, #4ade80); border-radius: 999px; transition: width .3s; }
   .barra > div.descanso { background: linear-gradient(90deg, #d97706, #fbbf24); }
 
-  #botones { display: flex; gap: .5rem; }
+  #botones { display: flex; gap: .45rem; flex-wrap: wrap; }
+  #botones button { min-width: calc(50% - .3rem); }
   button {
     flex: 1; font-size: 1.05rem; font-weight: 800; padding: .9rem .5rem;
     border: 0; border-radius: .9rem; cursor: pointer; letter-spacing: .01em;
@@ -99,7 +100,8 @@
   button:hover { filter: brightness(1.08); }
   #btnEmpezar { background: linear-gradient(180deg, #22c55e, #16a34a); color: #052e16; }
   #btnPausa { background: linear-gradient(180deg, #f59e0b, #d97706); color: #451a03; display: none; }
-  #btnParar { background: linear-gradient(180deg, #ef4444, #dc2626); color: #fff; display: none; }
+  #btnParar { background: linear-gradient(180deg, #ef4444, #dc2626); color: #fff; }
+  #btnReiniciar { background: linear-gradient(180deg, #6366f1, #4f46e5); color: #fff; }
 
   #ajustes { margin-top: .9rem; text-align: left; }
   #btnAjustes {
@@ -153,7 +155,8 @@
     <div id="botones">
       <button id="btnEmpezar">Empezar</button>
       <button id="btnPausa">Pausa</button>
-      <button id="btnParar">Parar todo</button>
+      <button id="btnParar">Parar</button>
+      <button id="btnReiniciar" type="button">Reiniciar</button>
     </div>
 
     <div id="ajustes">
@@ -178,6 +181,7 @@
   const elFase = $("fase"), elProgreso = $("progreso"), elMensajes = $("mensajes");
   const elBarra = $("barraRelleno"), elAnillo = $("anillo");
   const btnEmpezar = $("btnEmpezar"), btnPausa = $("btnPausa"), btnParar = $("btnParar");
+  const btnReiniciar = $("btnReiniciar");
   const selVoz = $("selVoz"), panelVoz = $("panelVoz"), btnAjustes = $("btnAjustes"), btnProbar = $("btnProbar");
   const pasos = Array.from(document.querySelectorAll(".paso"));
 
@@ -493,7 +497,6 @@
     corriendo = false;
     pausado = false;
     btnPausa.style.display = "none";
-    btnParar.style.display = "none";
     btnEmpezar.style.display = "";
     btnEmpezar.textContent = txtBoton;
   }
@@ -510,7 +513,6 @@
     btnEmpezar.style.display = "none";
     btnPausa.style.display = "";
     btnPausa.textContent = "Pausa";
-    btnParar.style.display = "";
     elMensajes.textContent = "";
     rutina();
   }
@@ -550,7 +552,6 @@
     setFase("Detenido", "espera");
     pasos.forEach((p) => p.classList.remove("activo", "hecho"));
     btnPausa.style.display = "none";
-    btnParar.style.display = "none";
     btnEmpezar.style.display = "";
     btnEmpezar.textContent = "Empezar";
     if (habiaRutina) {
@@ -559,9 +560,32 @@
     }
   }
 
+  function reiniciar() {
+    corriendo = false;
+    pausado = false;
+    if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
+    totalFase = 0;
+    elTiempo.textContent = "–";
+    elTiempo.className = "";
+    elAnillo.style.strokeDashoffset = "0";
+    elBarra.style.width = "0%";
+    elEjercicio.textContent = "";
+    elRep.textContent = "";
+    elProgreso.textContent = "";
+    elMensajes.textContent = "";
+    setFase("Listo para empezar", "espera");
+    pasos.forEach((p) => p.classList.remove("activo", "hecho"));
+    btnPausa.style.display = "none";
+    btnEmpezar.style.display = "";
+    btnEmpezar.textContent = "Empezar";
+    pitido(520, 0.1);
+    hablar("Reiniciado. Listo para empezar.");
+  }
+
   btnEmpezar.addEventListener("click", empezar);
   btnPausa.addEventListener("click", pausar);
   btnParar.addEventListener("click", parar);
+  btnReiniciar.addEventListener("click", reiniciar);
 
   btnAjustes.addEventListener("click", () => {
     panelVoz.classList.toggle("abierto");
