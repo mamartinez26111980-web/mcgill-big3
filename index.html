@@ -53,6 +53,9 @@
   }
   .paso.activo { background: #0c4a6e; color: #e0f2fe; border-color: #0284c7; }
   .paso.hecho { background: #14532d; color: #bbf7d0; border-color: #16a34a; }
+  .paso.clicable { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .paso.clicable:active { transform: scale(.97); }
+  .paso.clicable:hover { border-color: #38bdf8; }
 
   .reloj-wrap { position: relative; width: min(220px, 58vw); height: min(220px, 58vw); margin: 0 auto .35rem; }
   .reloj-wrap svg { position: absolute; inset: 0; transform: rotate(-90deg); width: 100%; height: 100%; }
@@ -128,7 +131,7 @@
   <div class="tarjeta">
     <div class="marca">Entrenador de voz</div>
     <h1>McGill Big 3</h1>
-    <p id="subtitulo">No mires la pantalla: él lo dice todo</p>
+    <p id="subtitulo">Toca un ejercicio para saltar a él</p>
 
     <div class="pasos" id="pasos">
       <div class="paso" data-i="1">1<br>Abdominales</div>
@@ -195,6 +198,7 @@
 
   let corriendo = false, pausado = false, audioCtx = null, vozElegida = null;
   let totalFase = 0;
+  let idCorrida = 0;
   let wakeLock = null;
   const CLAVE_VOZ = "mcgill_voz";
 
@@ -337,10 +341,11 @@
 
   // ---------- Tiempo con pausa ----------
   function dormir(ms) {
+    const id = idCorrida;
     return new Promise((resolve) => {
       let restante = ms;
       const paso = () => {
-        if (!corriendo) { resolve(); return; }
+        if (!corriendo || id !== idCorrida) { resolve(); return; }
         if (pausado) { setTimeout(paso, 80); return; }
         if (restante <= 0) { resolve(); return; }
         const t0 = Date.now();
@@ -378,13 +383,15 @@
   }
 
   async function cuentaAtras(segundos, opts) {
+    const id = idCorrida;
+    const vivo = () => corriendo && id === idCorrida;
     const modo = (opts && opts.modo) || "ultimos3";
     const clase = (opts && opts.clase) || "";
     totalFase = segundos;
     for (let s = segundos; s >= 1; s--) {
-      if (!corriendo) return;
-      while (pausado && corriendo) await dormir(80);
-      if (!corriendo) return;
+      if (!vivo()) return;
+      while (pausado && vivo()) await dormir(80);
+      if (!vivo()) return;
       pintarReloj(s, clase);
       const hablarEste = modo !== "nada" && (
         modo === "todas"
@@ -397,7 +404,7 @@
       }
       await dormir(1000);
     }
-    if (!corriendo) return;
+    if (!vivo()) return;
     pintarReloj(0, clase);
     await dormir(400);
   }
@@ -407,6 +414,7 @@
   }
 
   async function transicion(segundos, textoEjercicio, nombreEjercicio, pasoN) {
+    const id = idCorrida;
     elEjercicio.textContent = nombreEjercicio;
     elRep.textContent = "";
     elProgreso.textContent = "Ejercicio " + pasoN + " de 3";
@@ -415,12 +423,13 @@
     marcarPaso(pasoN, "activo");
     pitidoCambio();
     await hablar(textoEjercicio);
-    if (!corriendo) return;
+    if (!corriendo || id !== idCorrida) return;
     await cuentaAtras(segundos, { modo: "nada", clase: "cambio" });
   }
 
   async function hacerRep(nombreEj, rep, total, dur, opts) {
-    if (!corriendo) return;
+    const id = idCorrida;
+    if (!corriendo || id !== idCorrida) return;
     const ann = opts.anuncio(rep);
     elEjercicio.textContent = nombreEj;
     elRep.textContent = "Repetición " + rep + " de " + total;
@@ -429,26 +438,31 @@
     marcarPaso(opts.indiceEj, "activo");
     pitido(880, 0.15);
     await hablar(ann);
-    if (!corriendo) return;
+    if (!corriendo || id !== idCorrida) return;
     await dormir(250);
     await cuentaAtras(dur, { modo: "todas", clase: "" });
-    if (!corriendo) return;
+    if (!corriendo || id !== idCorrida) return;
     pitidoCambio();
   }
 
   async function descanso(segundos, textoVoz) {
-    if (!corriendo) return;
+    const id = idCorrida;
+    if (!corriendo || id !== idCorrida) return;
     elRep.textContent = "";
     setFase("Descanso", "descanso");
     elMensajes.textContent = "Descanso";
     await hablar(textoVoz || "Descanso.");
-    if (!corriendo) return;
+    if (!corriendo || id !== idCorrida) return;
     await cuentaAtras(segundos, { modo: "nada", clase: "descanso" });
-    if (!corriendo) return;
+    if (!corriendo || id !== idCorrida) return;
     pitido(880, 0.12);
   }
 
-  async function rutina() {
+  async function rutina(desde) {
+    const id = idCorrida;
+    const vivo = () => corriendo && id === idCorrida;
+    const pasoInicial = desde || 1;
+
     const ejercicios = [
       { nombre: "Abdominales tumbados", reps: 10, dur: 10, descanso: 3,
         anuncio: (r) => "Repetición " + numEs(r) },
@@ -456,61 +470,76 @@
         anuncio: (r) => "Repetición " + numEs(r) + ", con " + ladoBirdDog(r) }
     ];
 
-    for (let i = 0; i < ejercicios.length; i++) {
-      const ej = ejercicios[i];
-      if (i > 0) {
-        await transicion(15, "Ejercicio " + numEs(i + 1) + ": " + ej.nombre, ej.nombre, i + 1);
-      } else {
-        elEjercicio.textContent = ej.nombre;
-        elProgreso.textContent = "Ejercicio 1 de 3";
-        setFase("Trabajo", "");
-        marcarPaso(1, "activo");
-        pitido(880, 0.15);
-        await hablar("Ejercicio uno: abdominales tumbados. Empezamos.");
-      }
-      if (!corriendo) return;
-
-      for (let r = 1; r <= ej.reps; r++) {
-        await hacerRep(ej.nombre, r, ej.reps, ej.dur, { anuncio: ej.anuncio, indiceEj: i + 1 });
-        if (!corriendo) return;
-        if (r < ej.reps) {
-          await descanso(ej.descanso, "Descanso.");
+    if (pasoInicial <= 2) {
+      for (let i = pasoInicial - 1; i < ejercicios.length; i++) {
+        const ej = ejercicios[i];
+        if (i === 0) {
+          elEjercicio.textContent = ej.nombre;
+          elProgreso.textContent = "Ejercicio 1 de 3";
+          setFase("Trabajo", "");
+          marcarPaso(1, "activo");
+          pitido(880, 0.15);
+          await hablar("Ejercicio uno: abdominales tumbados. Empezamos.");
+        } else {
+          await transicion(15, "Ejercicio " + numEs(i + 1) + ": " + ej.nombre, ej.nombre, i + 1);
         }
-        if (!corriendo) return;
-      }
-      marcarPaso(i + 1, "hecho");
-      if (i < ejercicios.length - 1) {
-        elMensajes.textContent = "Ejercicio " + numEs(i + 1) + " completado";
-        await hablar("Ejercicio " + numEs(i + 1) + " completado.");
+        if (!vivo()) return;
+
+        for (let r = 1; r <= ej.reps; r++) {
+          await hacerRep(ej.nombre, r, ej.reps, ej.dur, { anuncio: ej.anuncio, indiceEj: i + 1 });
+          if (!vivo()) return;
+          if (r < ej.reps) {
+            await descanso(ej.descanso, "Descanso.");
+          }
+          if (!vivo()) return;
+        }
+        marcarPaso(i + 1, "hecho");
+        if (i === 0 && pasoInicial === 1) {
+          elMensajes.textContent = "Ejercicio uno completado";
+          await hablar("Ejercicio uno completado.");
+          if (!vivo()) return;
+        }
       }
     }
 
     const nombrePlancha = "Plancha lateral";
-    await transicion(15, "Ejercicio tres: plancha lateral. Primero con el brazo izquierdo apoyado.", nombrePlancha, 3);
-    if (!corriendo) return;
+    if (pasoInicial <= 2) {
+      await transicion(15, "Ejercicio tres: plancha lateral. Primero con el brazo izquierdo apoyado.", nombrePlancha, 3);
+    } else {
+      elEjercicio.textContent = nombrePlancha;
+      elRep.textContent = "Lado izquierdo";
+      elProgreso.textContent = "Ejercicio 3 de 3";
+      setFase("Trabajo", "");
+      marcarPaso(3, "activo");
+      pitido(880, 0.15);
+      await hablar("Ejercicio tres: plancha lateral. Brazo izquierdo apoyado.");
+    }
+    if (!vivo()) return;
 
     elEjercicio.textContent = nombrePlancha;
     elRep.textContent = "Lado izquierdo";
     elProgreso.textContent = "Ejercicio 3 de 3";
     setFase("Trabajo", "");
-    pitido(880, 0.15);
-    await hablar("Brazo izquierdo apoyado.");
-    if (!corriendo) return;
+    if (pasoInicial <= 2) {
+      pitido(880, 0.15);
+      await hablar("Brazo izquierdo apoyado.");
+    }
+    if (!vivo()) return;
     await cuentaAtras(40, { modo: "todas", clase: "" });
-    if (!corriendo) return;
+    if (!vivo()) return;
     pitidoCambio();
 
     await descanso(15, "Descanso. Luego, brazo derecho.");
-    if (!corriendo) return;
+    if (!vivo()) return;
 
     elEjercicio.textContent = nombrePlancha;
     elRep.textContent = "Lado derecho";
     setFase("Trabajo", "");
     pitido(880, 0.15);
     await hablar("Brazo derecho apoyado. El último.");
-    if (!corriendo) return;
+    if (!vivo()) return;
     await cuentaAtras(40, { modo: "todas", clase: "" });
-    if (!corriendo) return;
+    if (!vivo()) return;
 
     pitidoFin();
     totalFase = 0;
@@ -537,8 +566,8 @@
     btnEmpezar.textContent = txtBoton;
   }
 
-  function empezar() {
-    if (corriendo) return;
+  function arrancar(desde) {
+    idCorrida += 1;
     if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
     aplicarVozElegida();
     if (!audioCtx) {
@@ -551,7 +580,18 @@
     btnPausa.textContent = "Pausa";
     elMensajes.textContent = "";
     pedirPantallaEncendida();
-    rutina();
+    const n = desde || 1;
+    for (let i = 1; i < n; i++) marcarPaso(i, "hecho");
+    rutina(n);
+  }
+
+  function empezar() {
+    if (corriendo) return;
+    arrancar(1);
+  }
+
+  function saltarA(paso) {
+    arrancar(paso);
   }
 
   function pausar() {
@@ -625,6 +665,11 @@
   btnPausa.addEventListener("click", pausar);
   btnParar.addEventListener("click", parar);
   btnReiniciar.addEventListener("click", reiniciar);
+
+  pasos.forEach((p) => {
+    p.classList.add("clicable");
+    p.addEventListener("click", () => saltarA(Number(p.dataset.i) || 1));
+  });
 
   btnAjustes.addEventListener("click", () => {
     panelVoz.classList.toggle("abierto");
