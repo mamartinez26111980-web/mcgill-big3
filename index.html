@@ -195,7 +195,23 @@
 
   let corriendo = false, pausado = false, audioCtx = null, vozElegida = null;
   let totalFase = 0;
+  let wakeLock = null;
   const CLAVE_VOZ = "mcgill_voz";
+
+  async function pedirPantallaEncendida() {
+    try {
+      if ("wakeLock" in navigator) {
+        wakeLock = await navigator.wakeLock.request("screen");
+        wakeLock.addEventListener("release", () => { wakeLock = null; });
+      }
+    } catch (e) { /* navegador sin soporte */ }
+  }
+  function soltarPantallaEncendida() {
+    try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) {}
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && corriendo && !wakeLock) pedirPantallaEncendida();
+  });
 
   // ---------- Voz ----------
   function todasLasVoces() {
@@ -415,16 +431,16 @@
 
   async function rutina() {
     const ejercicios = [
-      { nombre: "Abdominales tumbados", reps: 10, dur: 10, descanso: 5,
+      { nombre: "Abdominales tumbados", reps: 10, dur: 10, descanso: 3,
         anuncio: (r) => "Repetición " + numEs(r) },
-      { nombre: "Brazo y pie contrario en cuadrupedia", reps: 10, dur: 10, descanso: 5,
+      { nombre: "Brazo y pie contrario en cuadrupedia", reps: 10, dur: 10, descanso: 3,
         anuncio: (r) => "Repetición " + numEs(r) + ", con " + ladoBirdDog(r) }
     ];
 
     for (let i = 0; i < ejercicios.length; i++) {
       const ej = ejercicios[i];
       if (i > 0) {
-        await transicion(30, "Ejercicio " + numEs(i + 1) + ": " + ej.nombre, ej.nombre, i + 1);
+        await transicion(15, "Ejercicio " + numEs(i + 1) + ": " + ej.nombre, ej.nombre, i + 1);
       } else {
         elEjercicio.textContent = ej.nombre;
         elProgreso.textContent = "Ejercicio 1 de 3";
@@ -451,7 +467,7 @@
     }
 
     const nombrePlancha = "Plancha lateral";
-    await transicion(30, "Ejercicio tres: plancha lateral. Primero con el brazo izquierdo apoyado.", nombrePlancha, 3);
+    await transicion(15, "Ejercicio tres: plancha lateral. Primero con el brazo izquierdo apoyado.", nombrePlancha, 3);
     if (!corriendo) return;
 
     elEjercicio.textContent = nombrePlancha;
@@ -496,6 +512,7 @@
   function finalizar(txtBoton) {
     corriendo = false;
     pausado = false;
+    soltarPantallaEncendida();
     btnPausa.style.display = "none";
     btnEmpezar.style.display = "";
     btnEmpezar.textContent = txtBoton;
@@ -514,6 +531,7 @@
     btnPausa.style.display = "";
     btnPausa.textContent = "Pausa";
     elMensajes.textContent = "";
+    pedirPantallaEncendida();
     rutina();
   }
 
@@ -539,6 +557,7 @@
     const habiaRutina = corriendo || pausado;
     corriendo = false;
     pausado = false;
+    soltarPantallaEncendida();
     if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
     totalFase = 0;
     elTiempo.textContent = "–";
@@ -563,6 +582,7 @@
   function reiniciar() {
     corriendo = false;
     pausado = false;
+    soltarPantallaEncendida();
     if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
     totalFase = 0;
     elTiempo.textContent = "–";
