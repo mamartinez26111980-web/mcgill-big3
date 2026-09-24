@@ -312,7 +312,9 @@
   });
 
   // ---------- Voz ----------
-  // Solo España: es-ES (y variantes). Nada de México, Argentina, etc.
+  // La voz que HABLA por defecto es siempre de España. En la lista, debajo de
+  // las de España, salen también otras variantes de español (México, EE. UU.,
+  // Argentina...) para tener más opciones sin instalar nada.
   function esDeEspana(v) {
     const l = (v.lang || "").toLowerCase().replace("_", "-");
     if (l === "es" || l.startsWith("es-es") || l === "es-es" ) return !/es-(mx|ar|cl|co|pe|uy|ve|gt|hn|ni|pa|do|cu|ec|sv|py|bo|gq|419|us|pr)/.test(l) && (l === "es" || l.startsWith("es-es"));
@@ -331,27 +333,57 @@
 
   function idVoz(v) { return (v.voiceURI || v.name + "|" + v.lang); }
 
+  // Español que NO es de España (México, EE. UU., Argentina...): solo para la
+  // lista de opciones, nunca como voz por defecto.
+  function esLatino(v) {
+    const l = (v.lang || "").toLowerCase().replace("_", "-");
+    return l.startsWith("es") && !esDeEspana(v);
+  }
+
+  function vocesLatinas() {
+    if (typeof speechSynthesis === "undefined") return [];
+    try { speechSynthesis.getVoices(); } catch (e) {}
+    return speechSynthesis.getVoices()
+      .filter(esLatino)
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }
+
+  function opcionVoz(v) {
+    const o = document.createElement("option");
+    o.value = idVoz(v);
+    o.textContent = v.name + " (" + v.lang + ")";
+    return o;
+  }
+
   function rellenarSelector() {
-    const lista = todasLasVoces();
+    const espana = todasLasVoces();
+    const latinas = vocesLatinas();
+    const todas = espana.concat(latinas);
     const guardada = localStorage.getItem(CLAVE_VOZ);
     const actual = selVoz.value;
     selVoz.innerHTML = "";
-    if (!lista.length) {
+    if (!todas.length) {
       const o = document.createElement("option");
       o.value = "";
-      o.textContent = "Cargando voces de España…";
+      o.textContent = "Cargando voces en español…";
       selVoz.appendChild(o);
       return;
     }
-    lista.forEach((v) => {
-      const o = document.createElement("option");
-      o.value = idVoz(v);
-      o.textContent = v.name + " (" + v.lang + ")";
-      selVoz.appendChild(o);
-    });
-    let v = lista.find((x) => idVoz(x) === guardada)
-      || lista.find((x) => idVoz(x) === actual)
-      || lista[0];
+    if (espana.length) {
+      const g = document.createElement("optgroup");
+      g.label = "España (" + espana.length + ")";
+      espana.forEach((v) => g.appendChild(opcionVoz(v)));
+      selVoz.appendChild(g);
+    }
+    if (latinas.length) {
+      const g = document.createElement("optgroup");
+      g.label = "Otras variantes de español";
+      latinas.forEach((v) => g.appendChild(opcionVoz(v)));
+      selVoz.appendChild(g);
+    }
+    let v = todas.find((x) => idVoz(x) === guardada)
+      || todas.find((x) => idVoz(x) === actual)
+      || espana[0] || latinas[0];
     vozElegida = v;
     if (v) selVoz.value = idVoz(v);
     pintarInfoVoz();
@@ -366,14 +398,18 @@
   }
 
   function pintarInfoVoz() {
-    const n = todasLasVoces().length;
-    $("vozInfo").textContent = vozElegida
-      ? "Voz activa: " + vozElegida.name + (n > 1 ? " · " + n + " voces de España" : "")
-      : "Voz: ninguna de España todavía (abre «Cambiar voz»)";
+    const nEs = todasLasVoces().length, nLat = vocesLatinas().length;
+    if (!vozElegida) {
+      $("vozInfo").textContent = "Voz: ninguna en español todavía (abre «Cambiar voz»)";
+      return;
+    }
+    let t = "Voz activa: " + vozElegida.name;
+    if (nEs + nLat > 1) t += nLat ? " · " + nEs + " de España + " + nLat + " más" : " · " + nEs + " voces de España";
+    $("vozInfo").textContent = t;
   }
 
   function aplicarVozElegida() {
-    const lista = todasLasVoces();
+    const lista = todasLasVoces().concat(vocesLatinas());
     const v = lista.find((x) => idVoz(x) === selVoz.value);
     if (v) {
       vozElegida = v;
@@ -404,14 +440,30 @@
     });
   }
 
+  // Dice el número DEL segundo actual a velocidad normal (1.0): a 1.15 las
+  // palabras largas ("veintiocho", "treinta y nueve"...) no cabían en el
+  // segundo y el tick siguiente las cortaba a medias: sonaba "atragantado".
+  // Solo se cancela si aún se está hablando, y tras cancelar se esperan
+  // 90 ms para que el motor se asiente antes de hablar (evita el corte).
   function hablarNumero(texto) {
     if (typeof speechSynthesis === "undefined") return;
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(texto);
-    if (vozElegida) u.voice = vozElegida;
-    u.lang = (vozElegida && vozElegida.lang) || "es-ES";
-    u.rate = 1.15;
-    speechSynthesis.speak(u);
+    const decir = () => {
+      try {
+        const u = new SpeechSynthesisUtterance(texto);
+        if (vozElegida) u.voice = vozElegida;
+        u.lang = (vozElegida && vozElegida.lang) || "es-ES";
+        u.rate = 1;
+        speechSynthesis.speak(u);
+      } catch (e) { /* sin voz */ }
+    };
+    try {
+      if (speechSynthesis.speaking || speechSynthesis.pending) {
+        speechSynthesis.cancel();
+        setTimeout(decir, 90);
+      } else {
+        decir();
+      }
+    } catch (e) { decir(); }
   }
 
   // ---------- Sonido ----------
