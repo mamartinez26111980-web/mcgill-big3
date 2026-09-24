@@ -160,9 +160,65 @@
   }
   #vozInfo { color: #52525b; font-size: .75rem; margin-top: .6rem; min-height: .9rem; text-align: center; }
   #aviso { color: #3f3f46; font-size: .72rem; margin-top: .25rem; line-height: 1.4; text-align: center; }
+  /* ===== Superpremium: aurora, halo, iconos, grano ===== */
+  ::selection { background: rgba(52, 211, 153, .35); color: #fafafa; }
+  .tarjeta { position: relative; z-index: 1; }
+  .tarjeta::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: radial-gradient(ellipse 72% 24% at 50% 0%, rgba(255, 255, 255, .06), transparent 70%);
+  }
+  .aurora { position: fixed; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+  .aurora i { position: absolute; border-radius: 50%; filter: blur(80px); will-change: transform; transition: background 1.2s ease; }
+  .aurora i:nth-child(1) { width: 58vmax; height: 58vmax; left: -14vmax; top: -18vmax; background: var(--a1, rgba(16, 185, 129, .16)); animation: deriva1 24s ease-in-out infinite alternate; }
+  .aurora i:nth-child(2) { width: 48vmax; height: 48vmax; right: -16vmax; bottom: -18vmax; background: var(--a2, rgba(13, 148, 136, .12)); animation: deriva2 30s ease-in-out infinite alternate; }
+  .aurora i:nth-child(3) { width: 40vmax; height: 40vmax; right: 4vmax; top: 32%; background: var(--a3, rgba(6, 95, 70, .12)); animation: deriva3 27s ease-in-out infinite alternate; }
+  @keyframes deriva1 { from { transform: translate(0, 0) scale(1); } to { transform: translate(5vmax, 4vmax) scale(1.12); } }
+  @keyframes deriva2 { from { transform: translate(0, 0) scale(1.08); } to { transform: translate(-5vmax, -3vmax) scale(1); } }
+  @keyframes deriva3 { from { transform: translate(0, 0) scale(1); } to { transform: translate(-4vmax, 4vmax) scale(1.15); } }
+  body:has(#anillo.descanso) { --a1: rgba(245, 158, 11, .14); --a2: rgba(194, 65, 12, .10); --a3: rgba(146, 64, 14, .12); }
+  body:has(#anillo.cambio) { --a1: rgba(14, 165, 233, .14); --a2: rgba(3, 105, 161, .10); --a3: rgba(14, 116, 144, .12); }
+  body:has(#tiempo.fin) { --a1: rgba(16, 185, 129, .22); --a2: rgba(52, 211, 153, .14); --a3: rgba(6, 95, 70, .16); }
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: .032;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .reloj-wrap { color: #34d399; }
+  .reloj-wrap:has(#anillo.descanso) { color: #fbbf24; }
+  .reloj-wrap:has(#anillo.cambio) { color: #38bdf8; }
+  .reloj-wrap::before {
+    content: ""; position: absolute; inset: -16%; pointer-events: none;
+    background: radial-gradient(circle, currentColor 0%, transparent 62%);
+    opacity: .10; transition: opacity .6s ease;
+  }
+  body:has(#tiempo.fin) .reloj-wrap::before { opacity: .2; }
+  .reloj-hair { fill: none; stroke: rgba(255, 255, 255, .07); stroke-width: 1; }
+  .reloj-ticks { fill: none; stroke: rgba(255, 255, 255, .13); stroke-width: 2.5; stroke-dasharray: 1.4 8.02; }
+  .etiqueta { font-size: .64rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #52525b; margin: 0 0 .35rem; }
+  #tiempo { text-shadow: 0 2px 24px rgba(0, 0, 0, .45); }
+  #fase:not(.espera)::before {
+    content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor; margin-right: .45rem; vertical-align: 1px;
+    animation: latido 1.6s ease-in-out infinite;
+  }
+  @keyframes latido { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.8); } }
+  #botones button { display: flex; align-items: center; justify-content: center; gap: .5rem; }
+  #botones #btnPausa { display: none; }
+  #btnEmpezar::before, #btnPausa::before, #btnParar::before, #btnReiniciar::before {
+    content: ""; width: 1.05em; height: 1.05em; flex: none;
+    background-repeat: no-repeat; background-position: center; background-size: contain;
+  }
+  #btnEmpezar::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E"); }
+  #btnPausa::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M6 5h4v14H6zM14 5h4v14h-4z'/%3E%3C/svg%3E"); }
+  #btnParar::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3C/svg%3E"); }
+  #btnReiniciar::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z'/%3E%3C/svg%3E"); }
+  #btnEmpezar { box-shadow: 0 6px 18px -6px rgba(52, 211, 153, .45), inset 0 1px 0 rgba(255, 255, 255, .28); }
+  @media (prefers-reduced-motion: reduce) {
+    .aurora i, #fase:not(.espera)::before, .tarjeta, #panelVoz.abierto { animation: none; }
+  }
 </style>
 </head>
 <body>
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="tarjeta">
     <div class="marca">Entrenador de voz</div>
     <h1>McGill Big 3</h1>
@@ -174,8 +230,11 @@
       <div class="paso" data-i="3">3<br>Plancha</div>
     </div>
 
+    <div class="etiqueta">Tiempo restante</div>
     <div class="reloj-wrap">
       <svg viewBox="0 0 220 220" aria-hidden="true">
+        <circle class="reloj-hair" cx="110" cy="110" r="106"></circle>
+        <circle class="reloj-ticks" cx="110" cy="110" r="90"></circle>
         <circle class="reloj-bg" cx="110" cy="110" r="100"></circle>
         <circle class="reloj-fg" id="anillo" cx="110" cy="110" r="100"></circle>
       </svg>
@@ -198,11 +257,11 @@
     </div>
 
     <div id="ajustes">
-      <button id="btnAjustes" type="button">⚙ Cambiar voz</button>
+      <button id="btnAjustes" type="button"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true" style="vertical-align:-.12em;margin-right:.35em"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>Cambiar voz</button>
       <div id="panelVoz">
         <label for="selVoz">Voz del entrenador</label>
         <select id="selVoz"></select>
-        <button id="btnProbar" type="button">Probar esta voz</button>
+        <button id="btnProbar" type="button"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true" style="vertical-align:-.12em;margin-right:.35em"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16.5 12A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg>Probar esta voz</button>
       </div>
     </div>
 
@@ -611,7 +670,7 @@
     corriendo = true;
     pausado = false;
     btnEmpezar.style.display = "none";
-    btnPausa.style.display = "";
+    btnPausa.style.display = "flex";
     btnPausa.textContent = "Pausa";
     elMensajes.textContent = "";
     pedirPantallaEncendida();
