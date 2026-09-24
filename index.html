@@ -214,13 +214,20 @@
   });
 
   // ---------- Voz ----------
+  // Solo España: es-ES (y variantes). Nada de México, Argentina, etc.
+  function esDeEspana(v) {
+    const l = (v.lang || "").toLowerCase().replace("_", "-");
+    if (l === "es" || l.startsWith("es-es") || l === "es-es" ) return !/es-(mx|ar|cl|co|pe|uy|ve|gt|hn|ni|pa|do|cu|ec|sv|py|bo|gq|419|us|pr)/.test(l) && (l === "es" || l.startsWith("es-es"));
+    const n = (v.name || "").toLowerCase();
+    if (/\bspain\b|españa|castellano|castilian/.test(n) && l.startsWith("es")) return true;
+    return l.startsWith("es-es");
+  }
+
   function todasLasVoces() {
     if (typeof speechSynthesis === "undefined") return [];
+    try { speechSynthesis.getVoices(); } catch (e) {}
     return speechSynthesis.getVoices()
-      .filter((v) => {
-        const l = (v.lang || "").toLowerCase().replace("_", "-");
-        return l === "es-es" || l.startsWith("es-es-");
-      })
+      .filter(esDeEspana)
       .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }
 
@@ -229,13 +236,13 @@
   function rellenarSelector() {
     const lista = todasLasVoces();
     const guardada = localStorage.getItem(CLAVE_VOZ);
+    const actual = selVoz.value;
     selVoz.innerHTML = "";
     if (!lista.length) {
       const o = document.createElement("option");
-      o.textContent = "No hay voces de España en este dispositivo";
+      o.value = "";
+      o.textContent = "Cargando voces de España…";
       selVoz.appendChild(o);
-      vozElegida = null;
-      pintarInfoVoz();
       return;
     }
     lista.forEach((v) => {
@@ -244,17 +251,27 @@
       o.textContent = v.name + " (" + v.lang + ")";
       selVoz.appendChild(o);
     });
-    let v = lista.find((x) => idVoz(x) === guardada);
-    if (!v) v = lista[0];
+    let v = lista.find((x) => idVoz(x) === guardada)
+      || lista.find((x) => idVoz(x) === actual)
+      || lista[0];
     vozElegida = v;
     if (v) selVoz.value = idVoz(v);
     pintarInfoVoz();
   }
 
+  function refrescarVoces() {
+    if (typeof speechSynthesis === "undefined") return;
+    try { speechSynthesis.getVoices(); } catch (e) {}
+    rellenarSelector();
+    setTimeout(() => { try { speechSynthesis.getVoices(); } catch (e) {} rellenarSelector(); }, 300);
+    setTimeout(() => { try { speechSynthesis.getVoices(); } catch (e) {} rellenarSelector(); }, 1200);
+  }
+
   function pintarInfoVoz() {
+    const n = todasLasVoces().length;
     $("vozInfo").textContent = vozElegida
-      ? "Voz activa: " + vozElegida.name
-      : "Voz: ninguna disponible";
+      ? "Voz activa: " + vozElegida.name + (n > 1 ? " · " + n + " voces de España" : "")
+      : "Voz: ninguna de España todavía (abre «Cambiar voz»)";
   }
 
   function aplicarVozElegida() {
@@ -268,7 +285,7 @@
   }
 
   if (typeof speechSynthesis !== "undefined") {
-    rellenarSelector();
+    refrescarVoces();
     speechSynthesis.onvoiceschanged = rellenarSelector;
   }
 
@@ -612,10 +629,7 @@
   btnAjustes.addEventListener("click", () => {
     panelVoz.classList.toggle("abierto");
     if (panelVoz.classList.contains("abierto")) {
-      if (typeof speechSynthesis !== "undefined") {
-        speechSynthesis.getVoices();
-        rellenarSelector();
-      }
+      refrescarVoces();
     }
   });
 
