@@ -317,6 +317,8 @@
   // Argentina...) para tener más opciones sin instalar nada.
   function esDeEspana(v) {
     const l = (v.lang || "").toLowerCase().replace("_", "-");
+    if (l === "spa" || l === "spa-esp") return true; // Samsung TTS: códigos de 3 letras
+    if (l.startsWith("spa-")) return false;
     if (l === "es" || l.startsWith("es-es") || l === "es-es" ) return !/es-(mx|ar|cl|co|pe|uy|ve|gt|hn|ni|pa|do|cu|ec|sv|py|bo|gq|419|us|pr)/.test(l) && (l === "es" || l.startsWith("es-es"));
     const n = (v.name || "").toLowerCase();
     if (/\bspain\b|españa|castellano|castilian/.test(n) && l.startsWith("es")) return true;
@@ -337,7 +339,7 @@
   // lista de opciones, nunca como voz por defecto.
   function esLatino(v) {
     const l = (v.lang || "").toLowerCase().replace("_", "-");
-    return l.startsWith("es") && !esDeEspana(v);
+    return (l.startsWith("es") || l.startsWith("spa")) && !esDeEspana(v);
   }
 
   function vocesLatinas() {
@@ -832,7 +834,7 @@
       try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) {}
     }
     pitido(880, 0.12);
-    hablar("Hola, soy tu entrenadora. Repetición uno. Diez, nueve, ocho.");
+    hablar("Hola, soy tu entrenador de voz. Repetición uno. Diez, nueve, ocho.");
   });
 
   if ("serviceWorker" in navigator) {
