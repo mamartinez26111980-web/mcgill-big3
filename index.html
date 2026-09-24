@@ -216,12 +216,12 @@
   // ---------- Voz ----------
   function todasLasVoces() {
     if (typeof speechSynthesis === "undefined") return [];
-    return speechSynthesis.getVoices().slice().sort((a, b) => {
-      const ea = (a.lang || "").toLowerCase().startsWith("es") ? 0 : 1;
-      const eb = (b.lang || "").toLowerCase().startsWith("es") ? 0 : 1;
-      if (ea !== eb) return ea - eb;
-      return (a.name || "").localeCompare(b.name || "");
-    });
+    return speechSynthesis.getVoices()
+      .filter((v) => {
+        const l = (v.lang || "").toLowerCase().replace("_", "-");
+        return l === "es-es" || l.startsWith("es-es-");
+      })
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }
 
   function idVoz(v) { return (v.voiceURI || v.name + "|" + v.lang); }
@@ -232,18 +232,20 @@
     selVoz.innerHTML = "";
     if (!lista.length) {
       const o = document.createElement("option");
-      o.textContent = "Cargando voces del sistema…";
+      o.textContent = "No hay voces de España en este dispositivo";
       selVoz.appendChild(o);
+      vozElegida = null;
+      pintarInfoVoz();
       return;
     }
     lista.forEach((v) => {
       const o = document.createElement("option");
       o.value = idVoz(v);
-      o.textContent = v.name + " (" + v.lang + ")" + ((v.lang || "").toLowerCase().startsWith("es") ? " ★" : "");
+      o.textContent = v.name + " (" + v.lang + ")";
       selVoz.appendChild(o);
     });
     let v = lista.find((x) => idVoz(x) === guardada);
-    if (!v) v = lista.find((x) => (x.lang || "").toLowerCase().startsWith("es")) || lista[0];
+    if (!v) v = lista[0];
     vozElegida = v;
     if (v) selVoz.value = idVoz(v);
     pintarInfoVoz();
