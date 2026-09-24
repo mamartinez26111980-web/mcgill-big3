@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>McGill Big 3 — Cronómetro</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; display: flex; align-items: center; justify-content: center;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif; color: #e2e8f0;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #1e3a5f 0%, transparent 55%),
+      radial-gradient(800px 400px at 80% 110%, #14532d33 0%, transparent 50%),
+      #0b1220;
+    padding: 1rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tarjeta {
+    width: min(460px, 100%);
+    background: #111a2e;
+    border: 1px solid #243046;
+    border-radius: 28px;
+    padding: 1.4rem 1.2rem 1.2rem;
+    box-shadow: 0 24px 60px #00000088;
+    text-align: center;
+  }
+  .marca {
+    display: inline-flex; align-items: center; gap: .45rem;
+    font-size: .72rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: #7dd3fc;
+    background: #0c4a6e55; border: 1px solid #0369a155;
+    padding: .3rem .7rem; border-radius: 999px; margin-bottom: .7rem;
+  }
+  h1 { font-size: 1.35rem; margin: 0 0 .15rem; font-weight: 800; color: #f8fafc; }
+  #subtitulo { color: #64748b; font-size: .88rem; margin: 0 0 .9rem; }
+
+  .pasos { display: flex; gap: .4rem; justify-content: center; margin-bottom: .9rem; }
+  .paso {
+    flex: 1; font-size: .7rem; font-weight: 700; padding: .4rem .25rem;
+    border-radius: .65rem; background: #1a2438; color: #64748b;
+    border: 1px solid #243046; line-height: 1.25;
+    transition: all .25s;
+  }
+  .paso.activo { background: #0c4a6e; color: #e0f2fe; border-color: #0284c7; }
+  .paso.hecho { background: #14532d; color: #bbf7d0; border-color: #16a34a; }
+
+  .reloj-wrap { position: relative; width: min(220px, 58vw); height: min(220px, 58vw); margin: 0 auto .35rem; }
+  .reloj-wrap svg { position: absolute; inset: 0; transform: rotate(-90deg); width: 100%; height: 100%; }
+  .reloj-bg { fill: none; stroke: #1e293b; stroke-width: 10; }
+  .reloj-fg { fill: none; stroke: #22c55e; stroke-width: 10; stroke-linecap: round;
+    stroke-dasharray: 628; stroke-dashoffset: 0; transition: stroke-dashoffset .3s linear, stroke .3s; }
+  .reloj-fg.descanso { stroke: #f59e0b; }
+  .reloj-fg.cambio { stroke: #38bdf8; }
+  #tiempo {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: clamp(3.2rem, 16vw, 4.6rem); font-weight: 800; font-variant-numeric: tabular-nums;
+    letter-spacing: -.04em; color: #4ade80;
+  }
+  #tiempo.descanso { color: #fbbf24; }
+  #tiempo.cambio { color: #7dd3fc; }
+  #tiempo.fin { color: #4ade80; font-size: clamp(2rem, 10vw, 3rem); padding: 0 .5rem; text-align: center; }
+
+  #fase {
+    display: inline-block; font-size: .75rem; font-weight: 800; letter-spacing: .08em;
+    text-transform: uppercase; padding: .26rem .65rem; border-radius: 999px;
+    background: #14532d; color: #86efac; margin-bottom: .4rem; min-height: 1.35rem;
+  }
+  #fase.descanso { background: #78350f; color: #fcd34d; }
+  #fase.cambio { background: #0c4a6e; color: #7dd3fc; }
+  #fase.espera { background: #1e293b; color: #94a3b8; }
+
+  #ejercicio { font-size: 1.1rem; font-weight: 700; color: #f8fafc; min-height: 1.35rem; }
+  #rep { font-size: 1rem; color: #38bdf8; font-weight: 700; min-height: 1.2rem; margin-top: .1rem; }
+  #progreso { color: #64748b; font-size: .85rem; min-height: 1.05rem; margin-top: .1rem; }
+  #mensajes { color: #f1f5f9; font-size: .95rem; font-weight: 600; min-height: 1.3rem; margin-top: .35rem; }
+
+  .barra { height: 8px; background: #1e293b; border-radius: 999px; overflow: hidden; margin: .75rem 0 .95rem; }
+  .barra > div { height: 100%; width: 0%; background: linear-gradient(90deg, #22c55e, #4ade80); border-radius: 999px; transition: width .3s; }
+  .barra > div.descanso { background: linear-gradient(90deg, #d97706, #fbbf24); }
+
+  #botones { display: flex; gap: .5rem; }
+  button {
+    flex: 1; font-size: 1.05rem; font-weight: 800; padding: .9rem .5rem;
+    border: 0; border-radius: .9rem; cursor: pointer; letter-spacing: .01em;
+    transition: transform .08s, filter .15s; min-height: 48px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active { transform: scale(.97); }
+  button:hover { filter: brightness(1.08); }
+  #btnEmpezar { background: linear-gradient(180deg, #22c55e, #16a34a); color: #052e16; }
+  #btnPausa { background: linear-gradient(180deg, #f59e0b, #d97706); color: #451a03; display: none; }
+  #btnParar { background: linear-gradient(180deg, #ef4444, #dc2626); color: #fff; display: none; }
+
+  #ajustes { margin-top: .9rem; text-align: left; }
+  #btnAjustes {
+    width: 100%; flex: none; background: #1a2438; color: #94a3b8;
+    border: 1px solid #243046; font-size: .9rem; font-weight: 700;
+    padding: .55rem .8rem; border-radius: .7rem; margin-bottom: .5rem;
+  }
+  #panelVoz { display: none; background: #0d1526; border: 1px solid #243046; border-radius: .8rem; padding: .7rem; }
+  #panelVoz.abierto { display: block; }
+  #panelVoz label { display: block; font-size: .78rem; color: #64748b; margin-bottom: .3rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+  #selVoz {
+    width: 100%; font-size: .95rem; padding: .6rem .5rem; border-radius: .6rem;
+    background: #1a2438; color: #e2e8f0; border: 1px solid #334155; margin-bottom: .5rem;
+  }
+  #btnProbar {
+    width: 100%; flex: none; background: #0c4a6e; color: #e0f2fe;
+    font-size: .9rem; padding: .55rem; border-radius: .6rem;
+  }
+  #vozInfo { color: #475569; font-size: .75rem; margin-top: .55rem; min-height: .9rem; text-align: center; }
+  #aviso { color: #334155; font-size: .72rem; margin-top: .2rem; line-height: 1.35; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="tarjeta">
+    <div class="marca">Entrenador de voz</div>
+    <h1>McGill Big 3</h1>
+    <p id="subtitulo">No mires la pantalla: él lo dice todo</p>
+
+    <div class="pasos" id="pasos">
+      <div class="paso" data-i="1">1<br>Abdominales</div>
+      <div class="paso" data-i="2">2<br>Brazo y pie</div>
+      <div class="paso" data-i="3">3<br>Plancha</div>
+    </div>
+
+    <div class="reloj-wrap">
+      <svg viewBox="0 0 220 220" aria-hidden="true">
+        <circle class="reloj-bg" cx="110" cy="110" r="100"></circle>
+        <circle class="reloj-fg" id="anillo" cx="110" cy="110" r="100"></circle>
+      </svg>
+      <div id="tiempo">–</div>
+    </div>
+
+    <div id="fase" class="espera">Listo para empezar</div>
+    <div id="ejercicio"></div>
+    <div id="rep"></div>
+    <div id="progreso"></div>
+    <div id="mensajes"></div>
+
+    <div class="barra"><div id="barraRelleno"></div></div>
+
+    <div id="botones">
+      <button id="btnEmpezar">Empezar</button>
+      <button id="btnPausa">Pausa</button>
+      <button id="btnParar">Parar todo</button>
+    </div>
+
+    <div id="ajustes">
+      <button id="btnAjustes" type="button">⚙ Cambiar voz</button>
+      <div id="panelVoz">
+        <label for="selVoz">Voz del entrenador</label>
+        <select id="selVoz"></select>
+        <button id="btnProbar" type="button">Probar esta voz</button>
+      </div>
+    </div>
+
+    <div id="vozInfo"></div>
+    <div id="aviso">Deja la app abierta y el volumen alto. Sin datos también funciona.</div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  const elTiempo = $("tiempo"), elEjercicio = $("ejercicio"), elRep = $("rep");
+  const elFase = $("fase"), elProgreso = $("progreso"), elMensajes = $("mensajes");
+  const elBarra = $("barraRelleno"), elAnillo = $("anillo");
+  const btnEmpezar = $("btnEmpezar"), btnPausa = $("btnPausa"), btnParar = $("btnParar");
+  const selVoz = $("selVoz"), panelVoz = $("panelVoz"), btnAjustes = $("btnAjustes"), btnProbar = $("btnProbar");
+  const pasos = Array.from(document.querySelectorAll(".paso"));
+
+  const NUM = ["", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez",
+    "once", "doce", "trece", "catorce", "quince", "dieciséis", "diecisiete", "dieciocho", "diecinueve",
+    "veinte", "veintiuno", "veintidós", "veintitrés", "veinticuatro", "veinticinco", "veintiséis",
+    "veintisiete", "veintiocho", "veintinueve", "treinta", "treinta y uno", "treinta y dos",
+    "treinta y tres", "treinta y cuatro", "treinta y cinco", "treinta y seis", "treinta y siete",
+    "treinta y ocho", "treinta y nueve", "cuarenta"];
+  function numEs(n) { return NUM[n] || String(n); }
+
+  let corriendo = false, pausado = false, audioCtx = null, vozElegida = null;
+  let totalFase = 0;
+  const CLAVE_VOZ = "mcgill_voz";
+
+  // ---------- Voz ----------
+  function todasLasVoces() {
+    if (typeof speechSynthesis === "undefined") return [];
+    return speechSynthesis.getVoices().slice().sort((a, b) => {
+      const ea = (a.lang || "").toLowerCase().startsWith("es") ? 0 : 1;
+      const eb = (b.lang || "").toLowerCase().startsWith("es") ? 0 : 1;
+      if (ea !== eb) return ea - eb;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+  }
+
+  function idVoz(v) { return (v.voiceURI || v.name + "|" + v.lang); }
+
+  function rellenarSelector() {
+    const lista = todasLasVoces();
+    const guardada = localStorage.getItem(CLAVE_VOZ);
+    selVoz.innerHTML = "";
+    if (!lista.length) {
+      const o = document.createElement("option");
+      o.textContent = "Cargando voces del sistema…";
+      selVoz.appendChild(o);
+      return;
+    }
+    lista.forEach((v) => {
+      const o = document.createElement("option");
+      o.value = idVoz(v);
+      o.textContent = v.name + " (" + v.lang + ")" + ((v.lang || "").toLowerCase().startsWith("es") ? " ★" : "");
+      selVoz.appendChild(o);
+    });
+    let v = lista.find((x) => idVoz(x) === guardada);
+    if (!v) v = lista.find((x) => (x.lang || "").toLowerCase().startsWith("es")) || lista[0];
+    vozElegida = v;
+    if (v) selVoz.value = idVoz(v);
+    pintarInfoVoz();
+  }
+
+  function pintarInfoVoz() {
+    $("vozInfo").textContent = vozElegida
+      ? "Voz activa: " + vozElegida.name
+      : "Voz: ninguna disponible";
+  }
+
+  function aplicarVozElegida() {
+    const lista = todasLasVoces();
+    const v = lista.find((x) => idVoz(x) === selVoz.value);
+    if (v) {
+      vozElegida = v;
+      localStorage.setItem(CLAVE_VOZ, idVoz(v));
+      pintarInfoVoz();
+    }
+  }
+
+  if (typeof speechSynthesis !== "undefined") {
+    rellenarSelector();
+    speechSynthesis.onvoiceschanged = rellenarSelector;
+  }
+
+  function hablar(texto) {
+    return new Promise((resolve) => {
+      if (typeof speechSynthesis === "undefined") { resolve(); return; }
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(texto);
+      if (vozElegida) u.voice = vozElegida;
+      u.lang = (vozElegida && vozElegida.lang) || "es-ES";
+      u.rate = 1.05;
+      let hecho = false;
+      const fin = () => { if (!hecho) { hecho = true; resolve(); } };
+      u.onend = fin;
+      u.onerror = fin;
+      setTimeout(fin, Math.max(2000, texto.length * 140));
+      speechSynthesis.speak(u);
+    });
+  }
+
+  function hablarNumero(texto) {
+    if (typeof speechSynthesis === "undefined") return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(texto);
+    if (vozElegida) u.voice = vozElegida;
+    u.lang = (vozElegida && vozElegida.lang) || "es-ES";
+    u.rate = 1.15;
+    speechSynthesis.speak(u);
+  }
+
+  // ---------- Sonido ----------
+  function pitido(freq, dur) {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sine";
+      o.frequency.value = freq || 880;
+      g.gain.value = 0.0001;
+      o.connect(g); g.connect(audioCtx.destination);
+      const t = audioCtx.currentTime;
+      g.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (dur || 0.18));
+      o.start(t); o.stop(t + (dur || 0.18) + 0.02);
+    } catch (e) { /* sin audio */ }
+  }
+  function pitidoCambio() { pitido(660, 0.1); setTimeout(() => pitido(880, 0.18), 140); }
+  function pitidoFin() { pitido(880, 0.15); setTimeout(() => pitido(1100, 0.35), 180); }
+
+  // ---------- Tiempo con pausa ----------
+  function dormir(ms) {
+    return new Promise((resolve) => {
+      let restante = ms;
+      const paso = () => {
+        if (!corriendo) { resolve(); return; }
+        if (pausado) { setTimeout(paso, 80); return; }
+        if (restante <= 0) { resolve(); return; }
+        const t0 = Date.now();
+        setTimeout(() => { restante -= (Date.now() - t0); paso(); }, Math.min(restante, 80));
+      };
+      paso();
+    });
+  }
+
+  function pintarReloj(seg, clase) {
+    elTiempo.textContent = String(seg);
+    elTiempo.className = clase || "";
+    if (totalFase > 0) {
+      const p = Math.max(0, Math.min(1, seg / totalFase));
+      elAnillo.style.strokeDashoffset = String(628 * (1 - p));
+      elBarra.style.width = (100 * (1 - p)) + "%";
+    }
+    elAnillo.classList.toggle("descanso", clase === "descanso");
+    elAnillo.classList.toggle("cambio", clase === "cambio");
+    elBarra.classList.toggle("descanso", clase === "descanso" || clase === "cambio");
+  }
+
+  function setFase(texto, clase) {
+    elFase.textContent = texto;
+    elFase.className = clase || "";
+  }
+
+  function marcarPaso(n, estado) {
+    pasos.forEach((p) => {
+      const i = Number(p.dataset.i);
+      p.classList.remove("activo", "hecho");
+      if (i < n || (estado === "hecho" && i <= n)) p.classList.add("hecho");
+      else if (i === n) p.classList.add(estado === "hecho" ? "hecho" : "activo");
+    });
+  }
+
+  async function cuentaAtras(segundos, opts) {
+    const modo = (opts && opts.modo) || "ultimos3";
+    const clase = (opts && opts.clase) || "";
+    totalFase = segundos;
+    for (let s = segundos; s >= 1; s--) {
+      if (!corriendo) return;
+      while (pausado && corriendo) await dormir(80);
+      if (!corriendo) return;
+      pintarReloj(s, clase);
+      const hablarEste = modo !== "nada" && (
+        modo === "todas"
+        || (modo === "inteligente" && (s === 30 || s === 20 || s === 10 || s <= 3))
+        || (modo === "ultimos3" && s <= 3)
+      );
+      if (hablarEste) {
+        pitido(s <= 3 ? 660 : 520, 0.07);
+        hablarNumero(numEs(s));
+      }
+      await dormir(1000);
+    }
+    if (!corriendo) return;
+    pintarReloj(0, clase);
+    await dormir(400);
+  }
+
+  function ladoBirdDog(rep) {
+    return rep % 2 === 1 ? "brazo izquierdo y pie derecho" : "brazo derecho y pie izquierdo";
+  }
+
+  async function transicion(segundos, textoEjercicio, nombreEjercicio, pasoN) {
+    elEjercicio.textContent = nombreEjercicio;
+    elRep.textContent = "";
+    elProgreso.textContent = "Ejercicio " + pasoN + " de 3";
+    elMensajes.textContent = "";
+    setFase("Cambio de ejercicio", "cambio");
+    marcarPaso(pasoN, "activo");
+    pitidoCambio();
+    await hablar(textoEjercicio);
+    if (!corriendo) return;
+    await cuentaAtras(segundos, { modo: "nada", clase: "cambio" });
+  }
+
+  async function hacerRep(nombreEj, rep, total, dur, opts) {
+    if (!corriendo) return;
+    const ann = opts.anuncio(rep);
+    elEjercicio.textContent = nombreEj;
+    elRep.textContent = "Repetición " + rep + " de " + total;
+    elProgreso.textContent = "Ejercicio " + opts.indiceEj + " de 3";
+    setFase("Trabajo", "");
+    marcarPaso(opts.indiceEj, "activo");
+    pitido(880, 0.15);
+    await hablar(ann);
+    if (!corriendo) return;
+    await dormir(250);
+    await cuentaAtras(dur, { modo: dur >= 30 ? "inteligente" : "todas", clase: "" });
+    if (!corriendo) return;
+    pitidoCambio();
+  }
+
+  async function descanso(segundos, textoVoz) {
+    if (!corriendo) return;
+    elRep.textContent = "";
+    setFase("Descanso", "descanso");
+    elMensajes.textContent = "Descanso";
+    await hablar(textoVoz || "Descanso.");
+    if (!corriendo) return;
+    await cuentaAtras(segundos, { modo: "nada", clase: "descanso" });
+    if (!corriendo) return;
+    pitido(880, 0.12);
+  }
+
+  async function rutina() {
+    const ejercicios = [
+      { nombre: "Abdominales tumbados", reps: 10, dur: 10, descanso: 5,
+        anuncio: (r) => "Repetición " + numEs(r) },
+      { nombre: "Brazo y pie contrario en cuadrupedia", reps: 10, dur: 10, descanso: 5,
+        anuncio: (r) => "Repetición " + numEs(r) + ", con " + ladoBirdDog(r) }
+    ];
+
+    for (let i = 0; i < ejercicios.length; i++) {
+      const ej = ejercicios[i];
+      if (i > 0) {
+        await transicion(30, "Ejercicio " + numEs(i + 1) + ": " + ej.nombre, ej.nombre, i + 1);
+      } else {
+        elEjercicio.textContent = ej.nombre;
+        elProgreso.textContent = "Ejercicio 1 de 3";
+        setFase("Trabajo", "");
+        marcarPaso(1, "activo");
+        pitido(880, 0.15);
+        await hablar("Ejercicio uno: abdominales tumbados. Empezamos.");
+      }
+      if (!corriendo) return;
+
+      for (let r = 1; r <= ej.reps; r++) {
+        await hacerRep(ej.nombre, r, ej.reps, ej.dur, { anuncio: ej.anuncio, indiceEj: i + 1 });
+        if (!corriendo) return;
+        if (r < ej.reps) {
+          await descanso(ej.descanso, "Descanso.");
+        }
+        if (!corriendo) return;
+      }
+      marcarPaso(i + 1, "hecho");
+      if (i < ejercicios.length - 1) {
+        elMensajes.textContent = "Ejercicio " + numEs(i + 1) + " completado";
+        await hablar("Ejercicio " + numEs(i + 1) + " completado.");
+      }
+    }
+
+    const nombrePlancha = "Plancha lateral";
+    await transicion(30, "Ejercicio tres: plancha lateral. Primero con el brazo izquierdo apoyado.", nombrePlancha, 3);
+    if (!corriendo) return;
+
+    elEjercicio.textContent = nombrePlancha;
+    elRep.textContent = "Lado izquierdo";
+    elProgreso.textContent = "Ejercicio 3 de 3";
+    setFase("Trabajo", "");
+    pitido(880, 0.15);
+    await hablar("Brazo izquierdo apoyado.");
+    if (!corriendo) return;
+    await cuentaAtras(40, { modo: "inteligente", clase: "" });
+    if (!corriendo) return;
+    pitidoCambio();
+
+    await descanso(15, "Descanso. Luego, brazo derecho.");
+    if (!corriendo) return;
+
+    elEjercicio.textContent = nombrePlancha;
+    elRep.textContent = "Lado derecho";
+    setFase("Trabajo", "");
+    pitido(880, 0.15);
+    await hablar("Brazo derecho apoyado. El último.");
+    if (!corriendo) return;
+    await cuentaAtras(40, { modo: "inteligente", clase: "" });
+    if (!corriendo) return;
+
+    pitidoFin();
+    totalFase = 0;
+    elTiempo.textContent = "¡Bien!";
+    elTiempo.className = "fin";
+    elAnillo.style.strokeDashoffset = "0";
+    elBarra.style.width = "100%";
+    elEjercicio.textContent = "¡Rutina completada!";
+    elRep.textContent = "";
+    elProgreso.textContent = "3 de 3 ejercicios";
+    setFase("Hecho", "");
+    elMensajes.textContent = "Has terminado los tres ejercicios. Enhorabuena.";
+    marcarPaso(3, "hecho");
+    await hablar("Has terminado los tres ejercicios. Enhorabuena. Rutina completada.");
+    finalizar("Volver a empezar");
+  }
+
+  function finalizar(txtBoton) {
+    corriendo = false;
+    pausado = false;
+    btnPausa.style.display = "none";
+    btnParar.style.display = "none";
+    btnEmpezar.style.display = "";
+    btnEmpezar.textContent = txtBoton;
+  }
+
+  function empezar() {
+    if (corriendo) return;
+    if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
+    aplicarVozElegida();
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) {}
+    }
+    corriendo = true;
+    pausado = false;
+    btnEmpezar.style.display = "none";
+    btnPausa.style.display = "";
+    btnPausa.textContent = "Pausa";
+    btnParar.style.display = "";
+    elMensajes.textContent = "";
+    rutina();
+  }
+
+  function pausar() {
+    if (!corriendo) return;
+    pausado = !pausado;
+    btnPausa.textContent = pausado ? "Seguir" : "Pausa";
+    if (typeof speechSynthesis !== "undefined" && pausado) speechSynthesis.cancel();
+    if (pausado) {
+      setFase("En pausa", "descanso");
+      elMensajes.textContent = "En pausa";
+      pitido(440, 0.12);
+      hablar("En pausa.");
+    } else {
+      elMensajes.textContent = "";
+      setFase("Seguimos", "");
+      pitido(880, 0.12);
+      hablar("Seguimos.");
+    }
+  }
+
+  function parar() {
+    const habiaRutina = corriendo || pausado;
+    corriendo = false;
+    pausado = false;
+    if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
+    totalFase = 0;
+    elTiempo.textContent = "–";
+    elTiempo.className = "";
+    elAnillo.style.strokeDashoffset = "0";
+    elBarra.style.width = "0%";
+    elEjercicio.textContent = "";
+    elRep.textContent = "";
+    elProgreso.textContent = "";
+    elMensajes.textContent = "";
+    setFase("Detenido", "espera");
+    pasos.forEach((p) => p.classList.remove("activo", "hecho"));
+    btnPausa.style.display = "none";
+    btnParar.style.display = "none";
+    btnEmpezar.style.display = "";
+    btnEmpezar.textContent = "Empezar";
+    if (habiaRutina) {
+      pitido(330, 0.2);
+      hablar("Rutina detenida.");
+    }
+  }
+
+  btnEmpezar.addEventListener("click", empezar);
+  btnPausa.addEventListener("click", pausar);
+  btnParar.addEventListener("click", parar);
+
+  btnAjustes.addEventListener("click", () => {
+    panelVoz.classList.toggle("abierto");
+    if (panelVoz.classList.contains("abierto")) {
+      if (typeof speechSynthesis !== "undefined") {
+        speechSynthesis.getVoices();
+        rellenarSelector();
+      }
+    }
+  });
+
+  selVoz.addEventListener("change", aplicarVozElegida);
+
+  btnProbar.addEventListener("click", () => {
+    aplicarVozElegida();
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) {}
+    }
+    pitido(880, 0.12);
+    hablar("Hola, soy tu entrenadora. Repetición uno. Diez, nueve, ocho.");
+  });
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+})();
+</script>
+</body>
+</html>

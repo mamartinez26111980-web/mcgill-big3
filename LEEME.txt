@@ -1,0 +1,9 @@
+McGill Big 3 — app para el móvil
+================================
+
+1. Abre esta página en Chrome del móvil (la URL que te dio Manuel/la IA).
+2. Menú de Chrome (tres puntos) → "Instalar aplicación" o "Añadir a pantalla de inicio".
+3. Confirmas y te queda el icono M3.
+4. Para cambiar la voz: botón "Cambiar voz" → eliges → "Probar esta voz".
+
+Funciona sin datos (una vez instalada).
