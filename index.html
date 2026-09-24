@@ -445,9 +445,9 @@
     });
   }
 
-  // Dice el número DEL segundo actual a velocidad normal (1.0): a 1.15 las
-  // palabras largas ("veintiocho", "treinta y nueve"...) no cabían en el
-  // segundo y el tick siguiente las cortaba a medias: sonaba "atragantado".
+  // Dice el número DEL segundo actual RÁPIDO (1.3): las palabras largas
+  // ("treinta y ocho", "treinta y siete"...) duran más de un segundo a
+  // velocidad normal y el tick siguiente las corta a medias ("atragantado").
   // Solo se cancela si aún se está hablando, y tras cancelar se esperan
   // 90 ms para que el motor se asiente antes de hablar (evita el corte).
   function hablarNumero(texto) {
@@ -457,7 +457,7 @@
         const u = new SpeechSynthesisUtterance(texto);
         if (vozElegida) u.voice = vozElegida;
         u.lang = (vozElegida && vozElegida.lang) || "es-ES";
-        u.rate = 1;
+        u.rate = 1.3;
         speechSynthesis.speak(u);
       } catch (e) { /* sin voz */ }
     };
