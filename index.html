@@ -226,6 +226,105 @@
     .aurora i, #fase:not(.espera)::before, .tarjeta, #panelVoz.abierto { animation: none; }
   }
   #vozInfo, #aviso { display: none; }
+  /* ===== Vidrio líquido: cristal traslúcido + luz curvada ===== */
+  .tarjeta {
+    background: rgba(18, 18, 22, 0.55);
+    backdrop-filter: blur(36px) saturate(1.7) brightness(1.12);
+    -webkit-backdrop-filter: blur(36px) saturate(1.7) brightness(1.12);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.35),
+      0 32px 64px -16px rgba(0, 0, 0, 0.6),
+      inset 0 1px 1px rgba(255, 255, 255, 0.22),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.25);
+  }
+  .tarjeta::before {
+    background: radial-gradient(ellipse 90% 30% at 50% 0%, rgba(255, 255, 255, 0.1), transparent 70%);
+  }
+  .pasos {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  .marca {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+  #fase {
+    backdrop-filter: blur(8px) saturate(1.4);
+    -webkit-backdrop-filter: blur(8px) saturate(1.4);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+  .barra {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+  #btnEmpezar {
+    background:
+      radial-gradient(ellipse 120% 90% at 50% 0%, rgba(255, 255, 255, 0.35), transparent 60%),
+      #34d399;
+    box-shadow:
+      0 6px 18px -6px rgba(52, 211, 153, 0.45),
+      inset 0 1px 1px rgba(255, 255, 255, 0.5),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  }
+  #btnPausa {
+    background:
+      radial-gradient(ellipse 120% 90% at 50% 0%, rgba(255, 255, 255, 0.35), transparent 60%),
+      #fbbf24;
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.5),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  }
+  #btnParar {
+    background:
+      radial-gradient(ellipse 120% 90% at 50% 0%, rgba(255, 255, 255, 0.12), transparent 60%),
+      rgba(239, 68, 68, 0.16);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.18),
+      inset 0 0 0 1px rgba(239, 68, 68, 0.35);
+  }
+  #btnReiniciar {
+    background:
+      radial-gradient(ellipse 120% 90% at 50% 0%, rgba(255, 255, 255, 0.12), transparent 60%),
+      rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.18),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  #btnAjustes {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+  }
+  #panelVoz {
+    background: rgba(22, 22, 26, 0.82);
+    backdrop-filter: blur(24px) saturate(1.5);
+    -webkit-backdrop-filter: blur(24px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 18px 40px -12px rgba(0, 0, 0, 0.65),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+  #selVoz {
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+  #btnProbar {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      inset 0 0 0 1px rgba(16, 185, 129, 0.32);
+  }
 </style>
 </head>
 <body>

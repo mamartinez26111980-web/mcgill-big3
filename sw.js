@@ -1,4 +1,4 @@
-const CACHE = "mcgill-big3-v17";
+const CACHE = "mcgill-big3-v18";
 const ASSETS = [
   "./",
   "./index.html",
