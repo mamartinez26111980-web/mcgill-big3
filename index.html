@@ -538,7 +538,9 @@
   function hablar(texto) {
     return new Promise((resolve) => {
       if (typeof speechSynthesis === "undefined") { resolve(); return; }
-      speechSynthesis.cancel();
+      try { speechSynthesis.resume(); } catch (e) {} // desatascar motor pausado (Chrome)
+      try { speechSynthesis.cancel(); } catch (e) {}
+      try { if (!vozElegida) aplicarVozElegida(); } catch (e) {} // voces que llegaron tarde
       const u = new SpeechSynthesisUtterance(texto);
       if (vozElegida) u.voice = vozElegida;
       u.lang = (vozElegida && vozElegida.lang) || "es-ES";
@@ -571,6 +573,8 @@
       } catch (e) { /* sin voz */ }
     };
     try {
+      try { speechSynthesis.resume(); } catch (e) {} // desatascar motor pausado
+      try { if (!vozElegida) aplicarVozElegida(); } catch (e) {} // voces tardías
       if (speechSynthesis.speaking || speechSynthesis.pending) {
         speechSynthesis.cancel();
         setTimeout(decir, esMovil ? 50 : 90);
@@ -826,8 +830,9 @@
     btnEmpezar.textContent = txtBoton;
   }
 
-  function arrancar(desde) {
+  async function arrancar(desde) {
     idCorrida += 1;
+    const idArranque = idCorrida;
     if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
     aplicarVozElegida();
     if (!audioCtx) {
@@ -842,6 +847,19 @@
     pedirPantallaEncendida();
     const n = desde || 1;
     for (let i = 1; i < n; i++) marcarPaso(i, "hecho");
+    // Arranque en frío: si el motor aún no trajo voces, esperarlas como mucho
+    // 2 s para no empezar mudo (luego cada hablar reintenta solo).
+    if (typeof speechSynthesis !== "undefined") {
+      for (let i = 0; i < 10; i++) {
+        let hay = false;
+        try { hay = todasLasVoces().length + vocesLatinas().length > 0; } catch (e) { hay = true; }
+        if (hay || !corriendo || idArranque !== idCorrida) break;
+        try { speechSynthesis.getVoices(); } catch (e) {}
+        await dormir(200);
+      }
+      if (!corriendo || idArranque !== idCorrida) return;
+      try { aplicarVozElegida(); } catch (e) {}
+    }
     rutina(n);
   }
 
