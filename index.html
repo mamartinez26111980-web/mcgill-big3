@@ -400,6 +400,42 @@
     "treinta y ocho", "treinta y nueve", "cuarenta"];
   function numEs(n) { return NUM[n] || String(n); }
 
+  // Frases sabias cortas contra la monotonía: rotan cada día (día del mes),
+  // sin guardar nada. Suenan al arrancar, en los cambios y al cerrar.
+  // Los conteos y los descansos NO se tocan nunca.
+  const FRASES = [
+    "La constancia le gana al talento.",
+    "Hoy también cuenta.",
+    "Poco cada día vale más que mucho un día.",
+    "La espalda te lo agradecerá.",
+    "El que persevera, alcanza.",
+    "No hay atajos: hay días.",
+    "El cuerpo obedece a quien insiste.",
+    "Cada día suma.",
+    "La disciplina es el verdadero talento.",
+    "Despacio también se llega.",
+    "Cuida tu espalda y ella te sostendrá.",
+    "No hacen falta prisas, hace falta seguir.",
+    "Quien siembra todos los días, recoge.",
+    "Más vale constancia que intensidad.",
+    "Tu yo de mañana te lo agradecerá.",
+    "Vas bien. Sigue.",
+    "La mejor rutina es la que se repite.",
+    "Un día más, un día más fuerte."
+  ];
+  const CIERRES = [
+    "Mañana, otra vez.",
+    "La constancia gana.",
+    "Descansa: te lo has ganado.",
+    "Hoy también cuenta.",
+    "Lo de hoy ya está hecho.",
+    "Espalda contenta, día redondo.",
+    "Nos vemos en la próxima."
+  ];
+  function diaDeHoy() { try { return new Date().getDate(); } catch (e) { return 1; } }
+  function fraseDia(pasoN) { return FRASES[(diaDeHoy() + (pasoN || 0)) % FRASES.length]; }
+  function fraseCierre() { return CIERRES[diaDeHoy() % CIERRES.length]; }
+
   let corriendo = false, pausado = false, audioCtx = null, vozElegida = null;
   let totalFase = 0;
   let idCorrida = 0;
@@ -688,6 +724,7 @@
     pitidoCambio();
     await hablar(textoEjercicio);
     if (!corriendo || id !== idCorrida) return;
+    hablar(fraseDia(pasoN)); // sin await: suena durante el cambio, sin alargar los 15 s
     await cuentaAtras(segundos, { modo: "nada", clase: "cambio" });
   }
 
@@ -743,7 +780,7 @@
           setFase("Trabajo", "");
           marcarPaso(1, "activo");
           pitido(880, 0.15);
-          await hablar("Ejercicio uno: abdominales tumbados. Empezamos.");
+          await hablar("Ejercicio uno: abdominales tumbados. " + fraseDia(0) + " Empezamos.");
         } else {
           await transicion(15, "Ejercicio " + numEs(i + 1) + ": " + ej.nombre, ej.nombre, i + 1);
         }
@@ -776,7 +813,7 @@
       setFase("Trabajo", "");
       marcarPaso(3, "activo");
       pitido(880, 0.15);
-      await hablar("Ejercicio tres: plancha lateral. Brazo izquierdo apoyado.");
+      await hablar("Ejercicio tres: plancha lateral. " + fraseDia(3) + " Brazo izquierdo apoyado.");
     }
     if (!vivo()) return;
 
@@ -817,7 +854,7 @@
     setFase("Hecho", "");
     elMensajes.textContent = "Has terminado los tres ejercicios. Enhorabuena.";
     marcarPaso(3, "hecho");
-    await hablar("Has terminado los tres ejercicios. Enhorabuena. Rutina completada.");
+    await hablar("Has terminado los tres ejercicios. Enhorabuena. Rutina completada. " + fraseCierre());
     finalizar("Volver a empezar");
   }
 
